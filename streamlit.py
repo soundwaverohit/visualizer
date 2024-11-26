@@ -3,6 +3,7 @@ import json
 import requests
 from urllib.parse import urlparse
 from base64 import b64encode
+from streamlit_ace import st_ace
 
 st.title("GitHub JSON Problem Visualizer and Editor")
 
@@ -174,24 +175,35 @@ with tab2:
                     height=100,
                     key=f'step_background_{idx}'
                 )
-                step_copy['function_header'] = st.text_area(
-                    f"Function Header (Step {step.get('step_number', '')})",
+
+                # Use code editor for code fields
+                step_copy['function_header'] = st_ace(
                     value=step.get('function_header', ''),
+                    language='python',
+                    theme='monokai',
+                    key=f'function_header_{idx}',
                     height=100,
-                    key=f'function_header_{idx}'
+                    auto_update=True
                 )
-                step_copy['ground_truth_code'] = st.text_area(
-                    f"Ground Truth Code (Step {step.get('step_number', '')})",
+
+                step_copy['ground_truth_code'] = st_ace(
                     value=step.get('ground_truth_code', ''),
+                    language='python',
+                    theme='monokai',
+                    key=f'ground_truth_code_{idx}',
                     height=200,
-                    key=f'ground_truth_code_{idx}'
+                    auto_update=True
                 )
-                step_copy['return_line'] = st.text_area(
-                    f"Return Line (Step {step.get('step_number', '')})",
+
+                step_copy['return_line'] = st_ace(
                     value=step.get('return_line', ''),
-                    height=70,
-                    key=f'return_line_{idx}'
+                    language='python',
+                    theme='monokai',
+                    key=f'return_line_{idx}',
+                    height=50,
+                    auto_update=True
                 )
+
                 # Test cases as list of strings
                 test_cases = step.get('test_cases', [])
                 test_cases_str = '\n'.join(test_cases)
