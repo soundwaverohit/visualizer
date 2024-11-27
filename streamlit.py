@@ -10,13 +10,17 @@ st.title("GitHub JSON Problem Visualizer and Editor")
 # Create tabs
 tab1, tab2 = st.tabs(["Visualize JSON", "Edit JSON"])
 
-# Shared variable for JSON content
+# Shared variables for session state
 if 'json_content' not in st.session_state:
     st.session_state.json_content = None
 if 'github_repo_url' not in st.session_state:
     st.session_state.github_repo_url = ''
 if 'github_pat' not in st.session_state:
     st.session_state.github_pat = ''
+if 'new_sub_steps_count' not in st.session_state:
+    st.session_state.new_sub_steps_count = 0
+if 'new_sub_steps' not in st.session_state:
+    st.session_state.new_sub_steps = []
 
 def get_raw_github_content_link(github_link):
     # Convert GitHub URL to raw content URL
@@ -134,6 +138,11 @@ with tab2:
         st.markdown("---")
         st.subheader("Editable Fields")
 
+        # Button to add a new sub-step
+        if st.button("Add Sub-Step"):
+            st.session_state.new_sub_steps_count += 1
+            st.session_state.new_sub_steps.append({})  # Initialize a new sub-step dict
+
         with st.form(key='edit_fields_form'):
             updated_json = st.session_state.json_content.copy()
 
@@ -156,21 +165,26 @@ with tab2:
                 height=150
             )
 
-            # Editable fields for sub_steps
+            # Editable fields for existing sub_steps
             sub_steps = updated_json.get('sub_steps', [])
             updated_sub_steps = []
 
             for idx, step in enumerate(sub_steps):
-                st.markdown(f"#### Sub-Step {idx + 1}: Step {step.get('step_number', '')}")
+                st.markdown(f"#### Existing Sub-Step {idx + 1}: Step {step.get('step_number', '')}")
                 step_copy = step.copy()
+                step_copy['step_number'] = st.text_input(
+                    f"Step Number (Existing) (Index {idx})",
+                    value=step.get('step_number', ''),
+                    key=f'step_number_{idx}'
+                )
                 step_copy['step_description_prompt'] = st.text_area(
-                    f"Step Description Prompt (Step {step.get('step_number', '')})",
+                    f"Step Description Prompt (Step {step_copy.get('step_number', '')})",
                     value=step.get('step_description_prompt', ''),
                     height=100,
                     key=f'step_description_prompt_{idx}'
                 )
                 step_copy['step_background'] = st.text_area(
-                    f"Step Background (Step {step.get('step_number', '')})",
+                    f"Step Background (Step {step_copy.get('step_number', '')})",
                     value=step.get('step_background', ''),
                     height=100,
                     key=f'step_background_{idx}'
@@ -208,13 +222,70 @@ with tab2:
                 test_cases = step.get('test_cases', [])
                 test_cases_str = '\n'.join(test_cases)
                 test_cases_input = st.text_area(
-                    f"Test Cases (one per line) (Step {step.get('step_number', '')})",
+                    f"Test Cases (one per line) (Step {step_copy.get('step_number', '')})",
                     value=test_cases_str,
                     height=150,
                     key=f'test_cases_{idx}'
                 )
                 step_copy['test_cases'] = test_cases_input.strip().split('\n') if test_cases_input.strip() else []
                 updated_sub_steps.append(step_copy)
+                st.markdown("---")
+
+            # Handle new sub-steps added
+            for idx in range(st.session_state.new_sub_steps_count):
+                st.markdown(f"#### New Sub-Step {idx + 1}")
+                new_step = {}
+                new_step['step_number'] = st.text_input(
+                    f"Step Number (New) (Index {idx})",
+                    key=f'new_step_number_{idx}'
+                )
+                new_step['step_description_prompt'] = st.text_area(
+                    f"Step Description Prompt (Step {new_step.get('step_number', '')})",
+                    height=100,
+                    key=f'new_step_description_prompt_{idx}'
+                )
+                new_step['step_background'] = st.text_area(
+                    f"Step Background (Step {new_step.get('step_number', '')})",
+                    height=100,
+                    key=f'new_step_background_{idx}'
+                )
+
+                # Use code editor for code fields
+                new_step['function_header'] = st_ace(
+                    value='',
+                    language='python',
+                    theme='monokai',
+                    key=f'new_function_header_{idx}',
+                    height=100,
+                    auto_update=True
+                )
+
+                new_step['ground_truth_code'] = st_ace(
+                    value='',
+                    language='python',
+                    theme='monokai',
+                    key=f'new_ground_truth_code_{idx}',
+                    height=200,
+                    auto_update=True
+                )
+
+                new_step['return_line'] = st_ace(
+                    value='',
+                    language='python',
+                    theme='monokai',
+                    key=f'new_return_line_{idx}',
+                    height=50,
+                    auto_update=True
+                )
+
+                # Test cases as list of strings
+                test_cases_input = st.text_area(
+                    f"Test Cases (one per line) (Step {new_step.get('step_number', '')})",
+                    height=150,
+                    key=f'new_test_cases_{idx}'
+                )
+                new_step['test_cases'] = test_cases_input.strip().split('\n') if test_cases_input.strip() else []
+                updated_sub_steps.append(new_step)
                 st.markdown("---")
 
             updated_json['sub_steps'] = updated_sub_steps
